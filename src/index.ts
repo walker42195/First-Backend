@@ -78,6 +78,21 @@ app.use(express.json());
 // Keep track of active WebSocket connections: group_id -> Map(member_id -> WebSocket)
 const groupConnections = new Map<string, Map<string, WebSocket>>();
 
+interface ActiveAlarm {
+  groupId: string;
+  memberId: string;
+  nickname: string;
+  latitude: number;
+  longitude: number;
+  timestamp: string;
+}
+
+// Keep track of active lone worker alarms: groupId -> Map of memberId -> Alarm Details
+const activeAlarms = new Map<string, Map<string, ActiveAlarm>>();
+
+// Keep track of active disconnection timers to debounce offline notifications: memberId -> Timer
+const disconnectTimers = new Map<string, NodeJS.Timeout>();
+
 // Keep track of the last time a join request notification was broadcast: member_id -> timestamp (ms)
 const lastJoinRequestBroadcast = new Map<string, number>();
 
@@ -998,6 +1013,13 @@ wss.on('connection', (ws: WebSocket, req: any, member: any) => {
 
   console.log(`User ${nickname} (${memberId}) connected to WS in group ${groupId}`);
 
+  // Clear the disconnect timer since they are back online!
+  const timer = disconnectTimers.get(memberId);
+  if (timer) {
+    clearTimeout(timer);
+    disconnectTimers.delete(memberId);
+  }
+
   // Register connection
   if (!groupConnections.has(groupId)) {
     groupConnections.set(groupId, new Map());
@@ -1050,11 +1072,27 @@ wss.on('connection', (ws: WebSocket, req: any, member: any) => {
       }
     }
 
-    broadcastToGroup(groupId, {
-      type: 'member_offline',
-      memberId,
-      nickname
-    });
+    // Clear any existing timer for this member
+    const existingTimer = disconnectTimers.get(memberId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    const timer = setTimeout(() => {
+      disconnectTimers.delete(memberId);
+
+      // Verify they didn't reconnect
+      const activeConns = groupConnections.get(groupId);
+      if (!activeConns || !activeConns.has(memberId)) {
+        broadcastToGroup(groupId, {
+          type: 'member_offline',
+          memberId,
+          nickname
+        });
+      }
+    }, 12000); // 12 seconds grace period
+
+    disconnectTimers.set(memberId, timer);
   });
 
   ws.on('error', (err) => {
@@ -1103,6 +1141,23 @@ app.post('/api/groups/alarm', async (req, res) => {
   }
 
   try {
+    const timestamp = new Date().toISOString();
+
+    // Store the triggered alarm
+    let groupAlarms = activeAlarms.get(groupId);
+    if (!groupAlarms) {
+      groupAlarms = new Map();
+      activeAlarms.set(groupId, groupAlarms);
+    }
+    groupAlarms.set(memberId, {
+      groupId,
+      memberId,
+      nickname,
+      latitude: latitude ?? 0.0,
+      longitude: longitude ?? 0.0,
+      timestamp
+    });
+
     // Broadcast the alarm to all other WebSocket connections in the group
     broadcastToGroup(groupId, {
       type: 'group_alarm',
@@ -1110,7 +1165,7 @@ app.post('/api/groups/alarm', async (req, res) => {
       nickname,
       latitude,
       longitude,
-      timestamp: new Date().toISOString()
+      timestamp
     }, memberId); // Exclude the sender themselves
 
     console.log(`[ALARM] Member ${nickname} (${memberId}) triggered an alarm in group ${groupId}`);
@@ -1129,6 +1184,15 @@ app.post('/api/groups/alarm/resolve', async (req, res) => {
   }
 
   try {
+    // Remove the alarm from the active list
+    const groupAlarms = activeAlarms.get(groupId);
+    if (groupAlarms) {
+      groupAlarms.delete(memberId);
+      if (groupAlarms.size === 0) {
+        activeAlarms.delete(groupId);
+      }
+    }
+
     // Broadcast the alarm resolution to all other WebSocket connections in the group
     broadcastToGroup(groupId, {
       type: 'group_alarm_resolved',
@@ -1143,6 +1207,18 @@ app.post('/api/groups/alarm/resolve', async (req, res) => {
     console.error('Failed to broadcast alarm resolution:', error);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+
+// GET active alarms in a group
+app.get('/api/groups/alarm', (req, res) => {
+  const groupId = req.query.groupId as string;
+  if (!groupId) {
+    return res.status(400).json({ error: 'groupId is required' });
+  }
+
+  const groupAlarms = activeAlarms.get(groupId);
+  const alarmsList = groupAlarms ? Array.from(groupAlarms.values()) : [];
+  return res.json(alarmsList);
 });
 
 // Initialize DB and start HTTP/WS Server
