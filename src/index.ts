@@ -1121,6 +1121,30 @@ app.post('/api/groups/alarm', async (req, res) => {
   }
 });
 
+// Broadcast lone worker alarm resolution to all online group members
+app.post('/api/groups/alarm/resolve', async (req, res) => {
+  const { groupId, memberId, nickname } = req.body;
+  if (!groupId || !memberId || !nickname) {
+    return res.status(400).json({ error: 'groupId, memberId, and nickname are required' });
+  }
+
+  try {
+    // Broadcast the alarm resolution to all other WebSocket connections in the group
+    broadcastToGroup(groupId, {
+      type: 'group_alarm_resolved',
+      memberId,
+      nickname,
+      timestamp: new Date().toISOString()
+    }, memberId); // Exclude the sender
+
+    console.log(`[ALARM] Member ${nickname} (${memberId}) resolved alarm in group ${groupId}`);
+    return res.json({ success: true, message: 'Larm-avblåsning skickad till gruppen.' });
+  } catch (error) {
+    console.error('Failed to broadcast alarm resolution:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Initialize DB and start HTTP/WS Server
 async function startServer() {
   await initDb();
