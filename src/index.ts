@@ -102,11 +102,11 @@ app.post('/api/verify/send', async (req, res) => {
     const mailOptions = {
       from: '"no-reply@novabase.se" <no-reply@novabase.se>',
       to: email.trim(),
-      subject: 'Verifieringskod för First!',
+      subject: 'Verifieringskod för First Beacon!',
       text: `Din 6-siffriga verifieringskod är: ${code}\n\nKoden är giltig i 5 minuter.`,
       html: `
         <div style="font-family: Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #fcfcfc;">
-          <h2 style="color: #6200ee; text-align: center;">Verifieringskod för First!</h2>
+          <h2 style="color: #6200ee; text-align: center;">Verifieringskod för First Beacon!</h2>
           <p style="font-size: 16px; color: #333333;">Hej,</p>
           <p style="font-size: 16px; color: #333333;">Använd följande 6-siffriga kod för att verifiera din e-postadress i appen:</p>
           <div style="text-align: center; margin: 30px 0;">
@@ -250,13 +250,13 @@ app.post('/api/groups/invite', async (req, res) => {
     const mailOptions = {
       from: '"no-reply@novabase.se" <no-reply@novabase.se>',
       to: email.trim(),
-      subject: `Inbjudan till gruppen ${groupCode.toUpperCase()} i First!`,
-      text: `Hej!\n\n${inviterNickname} har bjudit in dig till sin grupp ${groupCode.toUpperCase()} i appen First!.\n\nKlicka på följande länk på din telefon för att ladda ner appen och gå med i gruppen direkt:\n${inviteLink}\n\nMed vänliga hälsningar,\nno-reply@novabase.se`,
+      subject: `Inbjudan till gruppen ${groupCode.toUpperCase()} i First Beacon!`,
+      text: `Hej!\n\n${inviterNickname} har bjudit in dig till sin grupp ${groupCode.toUpperCase()} i appen First Beacon!.\n\nKlicka på följande länk på din telefon för att ladda ner appen och gå med i gruppen direkt:\n${inviteLink}\n\nMed vänliga hälsningar,\nno-reply@novabase.se`,
       html: `
         <div style="font-family: Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #fcfcfc;">
-          <h2 style="color: #6200ee; text-align: center;">Inbjudan till First!</h2>
+          <h2 style="color: #6200ee; text-align: center;">Inbjudan till First Beacon!</h2>
           <p style="font-size: 16px; color: #333333;">Hej,</p>
-          <p style="font-size: 16px; color: #333333;"><strong>${inviterNickname}</strong> har bjudit in dig till sin grupp <strong>${groupCode.toUpperCase()}</strong> i appen First!.</p>
+          <p style="font-size: 16px; color: #333333;"><strong>${inviterNickname}</strong> har bjudit in dig till sin grupp <strong>${groupCode.toUpperCase()}</strong> i appen First Beacon!.</p>
           <p style="font-size: 16px; color: #333333;">Klicka på knappen nedan på din mobiltelefon för att komma till inbjudan, ladda ner appen och ansluta direkt:</p>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${inviteLink}" style="font-size: 18px; font-weight: bold; color: #ffffff; background-color: #6200ee; padding: 14px 28px; text-decoration: none; border-radius: 8px; display: inline-block; box-shadow: 0 4px 6px rgba(98, 0, 238, 0.2);">
@@ -293,7 +293,7 @@ app.get('/invite', (req, res) => {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Inbjudan till First!</title>
+  <title>Inbjudan till First Beacon!</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     body {
@@ -416,7 +416,7 @@ app.get('/invite', (req, res) => {
 </head>
 <body>
   <div class="card">
-    <h1>Välkommen till First!</h1>
+    <h1>Välkommen till First Beacon!</h1>
     <p>Du har blivit inbjuden att gå med i gruppen:</p>
     
     <div class="code-display">${cleanCode}</div>
