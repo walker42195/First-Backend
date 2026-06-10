@@ -1062,6 +1062,39 @@ wss.on('connection', (ws: WebSocket, req: any, member: any) => {
   });
 });
 
+// Send feedback/suggestions to walker@novabase.se
+app.post('/api/feedback', async (req, res) => {
+  const { nickname, email, suggestion } = req.body;
+  if (!nickname || !email || !suggestion) {
+    return res.status(400).json({ error: 'nickname, email, and suggestion are required' });
+  }
+
+  try {
+    const mailOptions = {
+      from: `"First Beacon Feedback" <noreply@novabase.se>`,
+      to: 'walker@novabase.se',
+      replyTo: email.trim(),
+      subject: `Utvecklingsförslag från ${nickname}`,
+      text: `Utvecklingsförslag mottaget från First Beacon appen.\n\nAvsändare: ${nickname} (${email})\n\nFörslag:\n${suggestion}\n`,
+      html: `
+        <h3>Utvecklingsförslag mottaget från First Beacon</h3>
+        <p><strong>Avsändare:</strong> ${nickname} (<a href="mailto:${email}">${email}</a>)</p>
+        <p><strong>Förslag:</strong></p>
+        <div style="background: #f4f4f4; padding: 15px; border-left: 4px solid #7c4dff; border-radius: 4px; white-space: pre-wrap;">${suggestion}</div>
+        <br/>
+        <p><em>Klicka på svara i ditt e-postprogram för att svara direkt till ${nickname}.</em></p>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[FEEDBACK] Sent suggestion from ${nickname} (${email}) to walker@novabase.se`);
+    return res.json({ success: true, message: 'Utvecklingsförslag skickat!' });
+  } catch (error) {
+    console.error('Failed to send feedback email:', error);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Initialize DB and start HTTP/WS Server
 async function startServer() {
   await initDb();
